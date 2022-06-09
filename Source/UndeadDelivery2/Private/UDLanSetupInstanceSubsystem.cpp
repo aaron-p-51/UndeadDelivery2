@@ -5,15 +5,28 @@
 
 #include "Engine/Engine.h"
 #include "Engine/GameInstance.h"
+#include "Kismet/GameplayStatics.h"
 
 void UUDLanSetupInstanceSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
-	IConsoleManager::Get().RegisterConsoleCommand(TEXT("HostUD"), TEXT("Host testing session"), FConsoleCommandDelegate::CreateUObject(this, &UUDLanSetupInstanceSubsystem::HostUD));
-	IConsoleManager::Get().RegisterConsoleCommand(TEXT("JoinUD"), TEXT("Host testing session"), FConsoleCommandWithArgsDelegate::CreateUObject(this, &UUDLanSetupInstanceSubsystem::JoinUD));
+	if (!IConsoleManager::Get().IsNameRegistered(TEXT("UDHost")))
+	{
+		IConsoleManager::Get().RegisterConsoleCommand(TEXT("UDHost"), TEXT("Host testing session"), FConsoleCommandDelegate::CreateUObject(this, &UUDLanSetupInstanceSubsystem::Host));
+	}
+
+	if (!IConsoleManager::Get().IsNameRegistered(TEXT("UDJoin")))
+	{
+		IConsoleManager::Get().RegisterConsoleCommand(TEXT("UDJoin"), TEXT("Host testing session"), FConsoleCommandWithArgsDelegate::CreateUObject(this, &UUDLanSetupInstanceSubsystem::Join));
+	}
+
+	if (!IConsoleManager::Get().IsNameRegistered(TEXT("UDQuit")))
+	{
+		IConsoleManager::Get().RegisterConsoleCommand(TEXT("UDQuit"), TEXT("Quit testing session"), FConsoleCommandDelegate::CreateUObject(this, &UUDLanSetupInstanceSubsystem::Quit));
+	}
 }
 
 
-void UUDLanSetupInstanceSubsystem::HostUD()
+void UUDLanSetupInstanceSubsystem::Host()
 {
 	UEngine* Engine = GetGameInstance()->GetEngine();
 	if (Engine)
@@ -22,12 +35,12 @@ void UUDLanSetupInstanceSubsystem::HostUD()
 		if (World)
 		{
 			Engine->AddOnScreenDebugMessage(0, 5, FColor::Green, TEXT("Hosting"));
-			//World->ServerTravel()
+			World->ServerTravel("/Game/UndeadDelivery2/Maps/Map_MultiplayerTesting?listen");
 		}
 	}
 }
 
-void UUDLanSetupInstanceSubsystem::JoinUD(const TArray<FString>& IpAddress)
+void UUDLanSetupInstanceSubsystem::Join(const TArray<FString>& IpAddress)
 {
 	UEngine* Engine = GetGameInstance()->GetEngine();
 	if (Engine)
@@ -44,9 +57,15 @@ void UUDLanSetupInstanceSubsystem::JoinUD(const TArray<FString>& IpAddress)
 			if (PlayerController)
 			{
 				Engine->AddOnScreenDebugMessage(0, 5, FColor::Green, FString::Printf(TEXT("Joining %s"), *ip));
-				//PlayerController->ClientTravel(IpAddress, ETravelType::TRAVEL_Absolute);
+				PlayerController->ClientTravel(ip, ETravelType::TRAVEL_Absolute);
 			}
 		}
 	}
 }
+
+void UUDLanSetupInstanceSubsystem::Quit()
+{
+	UGameplayStatics::OpenLevel(GetWorld(), FName("Map_Menu"));
+}
+
 

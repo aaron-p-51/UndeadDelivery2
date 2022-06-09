@@ -21,10 +21,13 @@ class UNDEADDELIVERY2_API UUDLanSetupInstanceSubsystem : public UGameInstanceSub
 public:
 
 	UFUNCTION()
-	void HostUD();
+	void Host();
 
-	
-	void JoinUD(const TArray<FString>& IpAddress);
+	UFUNCTION()
+	void Join(const TArray<FString>& IpAddress);
+
+	UFUNCTION()
+	void Quit();
 
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	

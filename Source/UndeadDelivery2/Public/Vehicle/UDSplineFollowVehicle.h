@@ -8,6 +8,21 @@
 
 class USplineComponent;
 
+USTRUCT()
+struct FSpawnData
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	float Speed;
+
+	UPROPERTY()
+	float SpawnTime;
+
+	UPROPERTY()
+	USplineComponent* FollowSpline;
+};
+
 UCLASS()
 class UNDEADDELIVERY2_API AUDSplineFollowVehicle : public AActor
 {
@@ -19,19 +34,28 @@ class UNDEADDELIVERY2_API AUDSplineFollowVehicle : public AActor
  */
 public:
 
-	/** Desired constant speed of vehicle in m/s */
-	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite)
-	float Speed;
+	///** Desired constant speed of vehicle in m/s */
+	//UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite)
+	//float Speed;
+
+	//UPROPERTY(Replicated)
+	//float SpawnTime;
+
+	UPROPERTY(EditAnywhere, Category="LAN Testing")
+	bool bSyncServerSpawnTime;
 
 private:
 
 	float TotalPathDistance;
 	float CurrentDistanceTraveled;
 
-	UPROPERTY(ReplicatedUsing=OnRep_FollowSpline)
-	USplineComponent* FollowSpline;
+	UPROPERTY(ReplicatedUsing = OnRep_SpawnData)
+	FSpawnData SpawnData;
 
-	float SpeedCentemetersPerSecond;
+	//UPROPERTY(ReplicatedUsing=OnRep_FollowSpline)
+	//USplineComponent* FollowSpline;
+
+	//float SpeedCentemetersPerSecond;
 
  /**
   * Methods
@@ -40,18 +64,24 @@ public:
 	// Sets default values for this actor's properties
 	AUDSplineFollowVehicle();
 
-	void SetFollowSpline(USplineComponent* Spline);
+	//void SetFollowSpline(USplineComponent* Spline);
 
-	FORCEINLINE void SetSpeed(float Value) { Speed = Value; }
+	UFUNCTION()
+	void SetSpawnData(FSpawnData Value);
+
+	/*FORCEINLINE void SetSpeed(float Value) { Speed = Value; }*/
 
 private:
 
-	void CacheVariables();
+	//void CacheVariables();
 
 	void MoveAlongSpline(float DeltaTime);
 
+	//UFUNCTION()
+	//void OnRep_FollowSpline();
+
 	UFUNCTION()
-	void OnRep_FollowSpline();
+	void OnRep_SpawnData();
 
 protected:
 	// Called when the game starts or when spawned

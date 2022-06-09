@@ -80,4 +80,6 @@ private:
 
 	TArray<AUDZombieVehiclePath*> GetPossiblePaths() const;
 
+	float GetSpawnTime() const;
+
 };

@@ -7,6 +7,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Containers/Set.h"
+#include "GameFramework/GameStateBase.h"
 
 // Game Includes
 #include "Core/UDZombieVehiclePath.h"
@@ -49,15 +50,25 @@ void AUDZombieVehicleSpawner::SpawnZombieVehicle()
 	}
 
 	auto SpawnPath = PossiblePaths[UKismetMathLibrary::RandomIntegerInRange(0, PossiblePaths.Num() - 1)];
+	float SpawnTime = GetSpawnTime();
 
 	// Spawn
 	FTransform VehcileSpawnTransform(SpawnPath->GetActorTransform());
 	auto ZombieSpawnVehicle = Cast<AUDSplineFollowVehicle>(UGameplayStatics::BeginDeferredActorSpawnFromClass(this, ZombieVehicleClass, VehcileSpawnTransform));
 	if (ZombieSpawnVehicle)
 	{
-		ZombieSpawnVehicle->Speed = UKismetMathLibrary::RandomFloatInRange(MinVehicleSpeed, MaxSpawnVehicleDelay);
-		ZombieSpawnVehicle->SetFollowSpline(SpawnPath->GetPath());
+		FSpawnData VehicleSpawnData;
+		VehicleSpawnData.FollowSpline = SpawnPath->GetPath();
+		VehicleSpawnData.Speed = UKismetMathLibrary::RandomFloatInRange(MinVehicleSpeed, MaxSpawnVehicleDelay);
+		VehicleSpawnData.SpawnTime = SpawnTime;
+
+		//ZombieSpawnVehicle->Speed = UKismetMathLibrary::RandomFloatInRange(MinVehicleSpeed, MaxSpawnVehicleDelay);
+		//ZombieSpawnVehicle->SetFollowSpline(SpawnPath->GetPath());
+		//ZombieSpawnVehicle->SpawnData = VehicleSpawnData;
+		ZombieSpawnVehicle->SetSpawnData(VehicleSpawnData);
 		UGameplayStatics::FinishSpawningActor(ZombieSpawnVehicle, VehcileSpawnTransform);
+		//ZombieSpawnVehicle->SetSpawnData(VehicleSpawnData);
+		UE_LOG(LogTemp, Warning, TEXT("Spawning Car"));
 	}
 
 	UsedZombieVehiclePaths.Add(SpawnPath);
@@ -98,5 +109,16 @@ TArray<AUDZombieVehiclePath*> AUDZombieVehicleSpawner::GetPossiblePaths() const
 	}
 
 	return PossiblePaths;
+}
+
+float AUDZombieVehicleSpawner::GetSpawnTime() const
+{
+	auto GameStateBase = GetWorld()->GetGameState();
+	if (GameStateBase)
+	{
+		return GameStateBase->GetServerWorldTimeSeconds();
+	}
+
+	return GetWorld()->GetTimeSeconds();
 }
 
