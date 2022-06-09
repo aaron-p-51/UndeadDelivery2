@@ -9,9 +9,14 @@
 
 void UUDLanSetupInstanceSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
-	if (!IConsoleManager::Get().IsNameRegistered(TEXT("UDHost")))
+	if (!IConsoleManager::Get().IsNameRegistered(TEXT("UDHostTest")))
 	{
-		IConsoleManager::Get().RegisterConsoleCommand(TEXT("UDHost"), TEXT("Host testing session"), FConsoleCommandDelegate::CreateUObject(this, &UUDLanSetupInstanceSubsystem::Host));
+		IConsoleManager::Get().RegisterConsoleCommand(TEXT("UDHostTest"), TEXT("Host testing session"), FConsoleCommandDelegate::CreateUObject(this, &UUDLanSetupInstanceSubsystem::UDHostTest));
+	}
+
+	if (!IConsoleManager::Get().IsNameRegistered(TEXT("UDHostGame")))
+	{
+		IConsoleManager::Get().RegisterConsoleCommand(TEXT("UDHostGame"), TEXT("Host testing session"), FConsoleCommandDelegate::CreateUObject(this, &UUDLanSetupInstanceSubsystem::UDHostGame));
 	}
 
 	if (!IConsoleManager::Get().IsNameRegistered(TEXT("UDJoin")))
@@ -26,7 +31,7 @@ void UUDLanSetupInstanceSubsystem::Initialize(FSubsystemCollectionBase& Collecti
 }
 
 
-void UUDLanSetupInstanceSubsystem::Host()
+void UUDLanSetupInstanceSubsystem::UDHostTest()
 {
 	UEngine* Engine = GetGameInstance()->GetEngine();
 	if (Engine)
@@ -36,6 +41,20 @@ void UUDLanSetupInstanceSubsystem::Host()
 		{
 			Engine->AddOnScreenDebugMessage(0, 5, FColor::Green, TEXT("Hosting"));
 			World->ServerTravel("/Game/UndeadDelivery2/Maps/Map_MultiplayerTesting?listen");
+		}
+	}
+}
+
+void UUDLanSetupInstanceSubsystem::UDHostGame()
+{
+	UEngine* Engine = GetGameInstance()->GetEngine();
+	if (Engine)
+	{
+		UWorld* World = GetWorld();
+		if (World)
+		{
+			Engine->AddOnScreenDebugMessage(0, 5, FColor::Green, TEXT("Hosting"));
+			World->ServerTravel("/Game/UndeadDelivery2/Maps/Map_PlayerCarTesting?listen");
 		}
 	}
 }

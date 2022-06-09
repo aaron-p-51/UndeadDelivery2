@@ -21,7 +21,10 @@ class UNDEADDELIVERY2_API UUDLanSetupInstanceSubsystem : public UGameInstanceSub
 public:
 
 	UFUNCTION()
-	void Host();
+	void UDHostTest();
+
+	UFUNCTION()
+	void UDHostGame();
 
 	UFUNCTION()
 	void Join(const TArray<FString>& IpAddress);
