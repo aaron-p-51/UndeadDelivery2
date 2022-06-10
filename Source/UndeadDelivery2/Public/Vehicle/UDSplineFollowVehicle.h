@@ -10,18 +10,18 @@ class USplineComponent;
 class UBoxComponent;
 class UStaticMeshComponent;
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FSpawnData
 {
 	GENERATED_BODY()
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere)
 	float Speed;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere)
 	float SpawnTime;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	USplineComponent* FollowSpline;
 };
 
@@ -43,13 +43,13 @@ public:
 	//UPROPERTY(Replicated)
 	//float SpawnTime;
 
-	UPROPERTY(EditAnywhere, Category = "Components")
-	USceneComponent* RootComp;
+	/*UPROPERTY(EditAnywhere, Category = "Components")
+	USceneComponent* RootComp;*/
 
-	UPROPERTY(EditAnywhere, Category="Components")
-	UBoxComponent* BoxComponent;
+	/*UPROPERTY(EditAnywhere, Category="Components")
+	UBoxComponent* BoxComponent;*/
 
-	UPROPERTY(EditAnywhere, Category="Components")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components")
 	UStaticMeshComponent* MeshComponent;
 
 	UPROPERTY(EditAnywhere, Category="LAN Testing")
@@ -65,8 +65,8 @@ private:
 
 	float TotalPathDistance;
 	float CurrentDistanceTraveled;
-
-	UPROPERTY(ReplicatedUsing = OnRep_SpawnData)
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, ReplicatedUsing = OnRep_SpawnData)
 	FSpawnData SpawnData;
 
 	//UPROPERTY(ReplicatedUsing=OnRep_FollowSpline)
@@ -87,6 +87,9 @@ public:
 	void SetSpawnData(FSpawnData Value);
 
 	/*FORCEINLINE void SetSpeed(float Value) { Speed = Value; }*/
+
+	UFUNCTION(BlueprintPure)
+	float GetSpawnDataSpeed() { return SpawnData.Speed; }
 
 private:
 

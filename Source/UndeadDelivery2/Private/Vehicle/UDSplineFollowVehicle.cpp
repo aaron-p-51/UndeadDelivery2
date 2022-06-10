@@ -15,17 +15,15 @@
 // Sets default values
 AUDSplineFollowVehicle::AUDSplineFollowVehicle()
 {
-	RootComp = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
+	/*RootComp = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
 	SetRootComponent(RootComp);
 
 	BoxComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxComponent"));
-	BoxComponent->SetupAttachment(GetRootComponent());
+	BoxComponent->SetupAttachment(GetRootComponent());*/
 	
-
 	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComponent"));
-	MeshComponent->SetupAttachment(GetRootComponent());
-	MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
+	SetRootComponent(MeshComponent);
+	
 
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -78,6 +76,7 @@ void AUDSplineFollowVehicle::Tick(float DeltaTime)
 	if (SpawnData.FollowSpline && TotalPathDistance > 0.f && bCanMove)
 	{
 		MoveAlongSpline(DeltaTime);
+		UE_LOG(LogTemp, Warning, TEXT("Spline Length: %f"), TotalPathDistance);
 		if (CurrentDistanceTraveled >= TotalPathDistance)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Destroy"));
@@ -92,12 +91,14 @@ void AUDSplineFollowVehicle::MoveAlongSpline(float DeltaTime)
 	CurrentDistanceTraveled = CurrentDistanceTraveled + (SpawnData.Speed * 100.f * DeltaTime); //SpeedCentemetersPerSecond * DeltaTime;
 	FTransform TransformOnSpline = SpawnData.FollowSpline->GetTransformAtDistanceAlongSpline(CurrentDistanceTraveled, ESplineCoordinateSpace::World);
 
-	FHitResult* HitResult = nullptr;
-	SetActorLocation(TransformOnSpline.GetLocation(), true, HitResult);
-	if (HitResult)
-	{
-		OnSweepHit(*HitResult);
-	}
+	SetActorTransform(TransformOnSpline, true);
+
+	//FHitResult* HitResult = nullptr;
+	//SetActorLocation(TransformOnSpline.GetLocation(), true, HitResult);
+	//if (HitResult)
+	//{
+	//	OnSweepHit(*HitResult);
+	//}
 
 	//FHitResult* HitResult = nullptr;
 	//SetActorTransform(TransformOnSpline, true, HitResult);
