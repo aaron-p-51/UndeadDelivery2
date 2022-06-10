@@ -59,16 +59,13 @@ void AUDZombieVehicleSpawner::SpawnZombieVehicle()
 	{
 		FSpawnData VehicleSpawnData;
 		VehicleSpawnData.FollowSpline = SpawnPath->GetPath();
-		VehicleSpawnData.Speed = UKismetMathLibrary::RandomFloatInRange(MinVehicleSpeed, MaxSpawnVehicleDelay);
+		VehicleSpawnData.Speed = UKismetMathLibrary::RandomFloatInRange(MinVehicleSpeed, MaxVehicleSpeed);
 		VehicleSpawnData.SpawnTime = SpawnTime;
 
-		//ZombieSpawnVehicle->Speed = UKismetMathLibrary::RandomFloatInRange(MinVehicleSpeed, MaxSpawnVehicleDelay);
-		//ZombieSpawnVehicle->SetFollowSpline(SpawnPath->GetPath());
-		//ZombieSpawnVehicle->SpawnData = VehicleSpawnData;
 		ZombieSpawnVehicle->SetSpawnData(VehicleSpawnData);
 		UGameplayStatics::FinishSpawningActor(ZombieSpawnVehicle, VehcileSpawnTransform);
-		//ZombieSpawnVehicle->SetSpawnData(VehicleSpawnData);
-		UE_LOG(LogTemp, Warning, TEXT("Spawning Car"));
+
+		
 	}
 
 	UsedZombieVehiclePaths.Add(SpawnPath);
@@ -95,6 +92,8 @@ float AUDZombieVehicleSpawner::GetSpawnVehicleDelay() const
 {
 	return UKismetMathLibrary::RandomFloatInRange(MinSpawnVehcileDelay, MaxSpawnVehicleDelay);
 }
+
+
 
 
 TArray<AUDZombieVehiclePath*> AUDZombieVehicleSpawner::GetPossiblePaths() const

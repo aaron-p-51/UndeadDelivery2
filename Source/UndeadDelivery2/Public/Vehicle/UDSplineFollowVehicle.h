@@ -7,6 +7,8 @@
 #include "UDSplineFollowVehicle.generated.h"
 
 class USplineComponent;
+class UBoxComponent;
+class UStaticMeshComponent;
 
 USTRUCT()
 struct FSpawnData
@@ -41,8 +43,23 @@ public:
 	//UPROPERTY(Replicated)
 	//float SpawnTime;
 
+	UPROPERTY(EditAnywhere, Category = "Components")
+	USceneComponent* RootComp;
+
+	UPROPERTY(EditAnywhere, Category="Components")
+	UBoxComponent* BoxComponent;
+
+	UPROPERTY(EditAnywhere, Category="Components")
+	UStaticMeshComponent* MeshComponent;
+
 	UPROPERTY(EditAnywhere, Category="LAN Testing")
 	bool bSyncServerSpawnTime;
+
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite)
+	bool bCanMove;
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnSweepHit(FHitResult HitResult);
 
 private:
 

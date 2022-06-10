@@ -7,17 +7,33 @@
 #include "Components/SplineComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/GameStateBase.h"
+#include "Components/BoxComponent.h"
+#include "Components/StaticMeshComponent.h"
 
 // Game Includes
 
 // Sets default values
 AUDSplineFollowVehicle::AUDSplineFollowVehicle()
 {
+	RootComp = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
+	SetRootComponent(RootComp);
+
+	BoxComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxComponent"));
+	BoxComponent->SetupAttachment(GetRootComponent());
+	
+
+	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComponent"));
+	MeshComponent->SetupAttachment(GetRootComponent());
+	MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
 	TotalPathDistance = 0.f;
 	CurrentDistanceTraveled = 0.f;
+
+	bCanMove = true;
 
 	bReplicates = true;
 	SetReplicateMovement(false);
@@ -59,7 +75,7 @@ void AUDSplineFollowVehicle::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (SpawnData.FollowSpline && TotalPathDistance > 0.f)
+	if (SpawnData.FollowSpline && TotalPathDistance > 0.f && bCanMove)
 	{
 		MoveAlongSpline(DeltaTime);
 		if (CurrentDistanceTraveled >= TotalPathDistance)
@@ -75,7 +91,21 @@ void AUDSplineFollowVehicle::MoveAlongSpline(float DeltaTime)
 {
 	CurrentDistanceTraveled = CurrentDistanceTraveled + (SpawnData.Speed * 100.f * DeltaTime); //SpeedCentemetersPerSecond * DeltaTime;
 	FTransform TransformOnSpline = SpawnData.FollowSpline->GetTransformAtDistanceAlongSpline(CurrentDistanceTraveled, ESplineCoordinateSpace::World);
-	SetActorTransform(TransformOnSpline);
+
+	FHitResult* HitResult = nullptr;
+	SetActorLocation(TransformOnSpline.GetLocation(), true, HitResult);
+	if (HitResult)
+	{
+		OnSweepHit(*HitResult);
+	}
+
+	//FHitResult* HitResult = nullptr;
+	//SetActorTransform(TransformOnSpline, true, HitResult);
+	//if (HitResult)
+	//{
+	//	UE_LOG(LogTemp, Warning, TEXT("Sweep Hit"));
+	//	OnSweepHit(*HitResult);
+	//}
 }
 
 
@@ -126,5 +156,6 @@ void AUDSplineFollowVehicle::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 	//DOREPLIFETIME(AUDSplineFollowVehicle, FollowSpline);
 	//DOREPLIFETIME(AUDSplineFollowVehicle, Speed);
 	DOREPLIFETIME(AUDSplineFollowVehicle, SpawnData);
+	DOREPLIFETIME(AUDSplineFollowVehicle, bCanMove);
 }
 
