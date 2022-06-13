@@ -25,6 +25,19 @@ struct FSpawnData
 	USplineComponent* FollowSpline;
 };
 
+USTRUCT()
+struct FCollisionMove
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FTransform Transform;
+
+	UPROPERTY()
+	float Time;
+};
+
+
 UCLASS()
 class UNDEADDELIVERY2_API AUDSplineFollowVehicle : public AActor
 {
@@ -36,19 +49,6 @@ class UNDEADDELIVERY2_API AUDSplineFollowVehicle : public AActor
  */
 public:
 
-	///** Desired constant speed of vehicle in m/s */
-	//UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite)
-	//float Speed;
-
-	//UPROPERTY(Replicated)
-	//float SpawnTime;
-
-	/*UPROPERTY(EditAnywhere, Category = "Components")
-	USceneComponent* RootComp;*/
-
-	/*UPROPERTY(EditAnywhere, Category="Components")
-	UBoxComponent* BoxComponent;*/
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components")
 	UStaticMeshComponent* MeshComponent;
 
@@ -58,21 +58,24 @@ public:
 	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite)
 	bool bCanMove;
 
-	UFUNCTION(BlueprintImplementableEvent)
-	void OnSweepHit(FHitResult HitResult);
 
 private:
 
 	float TotalPathDistance;
 	float CurrentDistanceTraveled;
+	float SpeedCentemetersPerSecond;
+
+	bool bCollisionWithVehicleRegistered;
+
+	TArray<FCollisionMove> UnacknowledgedCollisionMoves;
+
+	UPROPERTY(ReplicatedUsing=OnRep_ServerStateCollisionMove);
+	FCollisionMove ServerStateCollisionMove;
+
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, ReplicatedUsing = OnRep_SpawnData)
 	FSpawnData SpawnData;
 
-	//UPROPERTY(ReplicatedUsing=OnRep_FollowSpline)
-	//USplineComponent* FollowSpline;
-
-	//float SpeedCentemetersPerSecond;
 
  /**
   * Methods
@@ -93,15 +96,28 @@ public:
 
 private:
 
-	//void CacheVariables();
+	float ClientTimeSinceUpdate;
+	float ClientTimeBetweenLastUpdates;
+
+	void SetupToFollowSpline();
 
 	void MoveAlongSpline(float DeltaTime);
+
+	FCollisionMove GetCollisionMove() const;
+
+	void ClientTick(float DeltaTime);
 
 	//UFUNCTION()
 	//void OnRep_FollowSpline();
 
 	UFUNCTION()
 	void OnRep_SpawnData();
+
+	UFUNCTION()
+	void MeshComponentHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+
+	UFUNCTION()
+	void OnRep_ServerStateCollisionMove();
 
 protected:
 	// Called when the game starts or when spawned

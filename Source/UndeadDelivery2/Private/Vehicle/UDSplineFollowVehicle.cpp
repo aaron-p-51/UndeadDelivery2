@@ -10,7 +10,10 @@
 #include "Components/BoxComponent.h"
 #include "Components/StaticMeshComponent.h"
 
+
 // Game Includes
+#include "Pawn/UDPlayerVehiclePawn.h"
+
 
 // Sets default values
 AUDSplineFollowVehicle::AUDSplineFollowVehicle()
@@ -47,8 +50,13 @@ void AUDSplineFollowVehicle::SetSpawnData(FSpawnData Value)
 void AUDSplineFollowVehicle::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (MeshComponent)
+	{
+		MeshComponent->OnComponentHit.AddDynamic(this, &AUDSplineFollowVehicle::MeshComponentHit);
+	}
 	
-	//CacheVariables();
+	SetupToFollowSpline();
 	if (SpawnData.FollowSpline)
 	{
 		TotalPathDistance = SpawnData.FollowSpline->GetSplineLength();
@@ -56,16 +64,16 @@ void AUDSplineFollowVehicle::BeginPlay()
 }
 
 
-//void AUDSplineFollowVehicle::CacheVariables()
-//{
-//	// Convert Speed m/s to cm/s
-//	SpeedCentemetersPerSecond = Speed * 100.f;
-//
-//	if (FollowSpline)
-//	{
-//		TotalPathDistance = FollowSpline->GetSplineLength();
-//	}
-//}
+void AUDSplineFollowVehicle::SetupToFollowSpline()
+{
+	// Convert Speed m/s to cm/s
+	SpeedCentemetersPerSecond = SpawnData.Speed * 100.f;
+
+	if (SpawnData.FollowSpline)
+	{
+		TotalPathDistance = SpawnData.FollowSpline->GetSplineLength();
+	}
+}
 
 
 // Called every frame
@@ -73,18 +81,51 @@ void AUDSplineFollowVehicle::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (SpawnData.FollowSpline && TotalPathDistance > 0.f && bCanMove)
+	if (!bCollisionWithVehicleRegistered)
 	{
-		MoveAlongSpline(DeltaTime);
-		UE_LOG(LogTemp, Warning, TEXT("Spline Length: %f"), TotalPathDistance);
-		if (CurrentDistanceTraveled >= TotalPathDistance)
+		if (SpawnData.FollowSpline && TotalPathDistance > 0.f && bCanMove)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Destroy"));
-			Destroy();
+			MoveAlongSpline(DeltaTime);
+			
+			if (CurrentDistanceTraveled >= TotalPathDistance)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Destroy"));
+				Destroy();
+			}
+		}
+	}
+	else
+	{
+		if (GetLocalRole() == ENetRole::ROLE_Authority)
+		{
+			ServerStateCollisionMove = GetCollisionMove();
+		}
+		else
+		{
+			ClientTick(DeltaTime);
 		}
 	}
 }
 
+void AUDSplineFollowVehicle::ClientTick(float DeltaTime)
+{
+	ClientTimeSinceUpdate += DeltaTime;
+
+	if (ClientTimeBetweenLastUpdates > KINDA_SMALL_NUMBER)
+	{
+		float LerpRatio = ClientTimeSinceUpdate / ClientTimeBetweenLastUpdates;
+
+		FVector StartLocation = GetActorLocation();
+		FVector TargetLocation = ServerStateCollisionMove.Transform.GetLocation();
+		FVector LerpLocation = FMath::Lerp<FVector>(StartLocation, TargetLocation, LerpRatio);
+
+		FQuat StartRotation = GetActorRotation().Quaternion();
+		FQuat TargetRotation = ServerStateCollisionMove.Transform.GetRotation();
+		FQuat LerpRotation = FQuat::Slerp(StartRotation, TargetRotation, LerpRatio);
+
+		SetActorLocationAndRotation(LerpLocation, LerpRotation);
+	}
+}
 
 void AUDSplineFollowVehicle::MoveAlongSpline(float DeltaTime)
 {
@@ -92,48 +133,33 @@ void AUDSplineFollowVehicle::MoveAlongSpline(float DeltaTime)
 	FTransform TransformOnSpline = SpawnData.FollowSpline->GetTransformAtDistanceAlongSpline(CurrentDistanceTraveled, ESplineCoordinateSpace::World);
 
 	SetActorTransform(TransformOnSpline, true);
-
-	//FHitResult* HitResult = nullptr;
-	//SetActorLocation(TransformOnSpline.GetLocation(), true, HitResult);
-	//if (HitResult)
-	//{
-	//	OnSweepHit(*HitResult);
-	//}
-
-	//FHitResult* HitResult = nullptr;
-	//SetActorTransform(TransformOnSpline, true, HitResult);
-	//if (HitResult)
-	//{
-	//	UE_LOG(LogTemp, Warning, TEXT("Sweep Hit"));
-	//	OnSweepHit(*HitResult);
-	//}
 }
 
 
-//void AUDSplineFollowVehicle::OnRep_FollowSpline()
-//{
-//	TotalPathDistance = FollowSpline->GetSplineLength();
-//}
+
+FCollisionMove AUDSplineFollowVehicle::GetCollisionMove() const
+{
+	FCollisionMove CollisionMove;
+	CollisionMove.Transform = GetActorTransform();
+
+	auto GameState = GetWorld()->GetGameState();
+	if (GameState)
+	{
+		CollisionMove.Time = GameState->GetServerWorldTimeSeconds();
+	}
+	else
+	{
+		CollisionMove.Time = GetWorld()->GetTimeSeconds();
+	}
+
+	return CollisionMove;
+}
 
 
-
-//void AUDSplineFollowVehicle::SetFollowSpline(USplineComponent* Spline)
-//{
-//	FollowSpline = Spline;
-//
-//	if (FollowSpline)
-//	{
-//		TotalPathDistance = FollowSpline->GetSplineLength();
-//	}
-//}
 
 void AUDSplineFollowVehicle::OnRep_SpawnData()
 {
-	UE_LOG(LogTemp, Warning, TEXT("OnRep"));
-	if (SpawnData.FollowSpline)
-	{
-		TotalPathDistance = SpawnData.FollowSpline->GetSplineLength();
-	}
+	SetupToFollowSpline();
 
 	if (bSyncServerSpawnTime)
 	{
@@ -150,6 +176,39 @@ void AUDSplineFollowVehicle::OnRep_SpawnData()
 }
 
 
+void AUDSplineFollowVehicle::MeshComponentHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+{
+	if (bCollisionWithVehicleRegistered) return;
+	
+
+	/** Create interface do determine proper collision actor */
+	auto OtherSplineFollowVehicle = Cast<AUDSplineFollowVehicle>(OtherActor);
+	auto OtherPlayerVehiclePawn = Cast<AUDPlayerVehiclePawn>(OtherActor);
+	if (OtherSplineFollowVehicle || OtherPlayerVehiclePawn)
+	{
+		if (MeshComponent)
+		{
+			if (GetLocalRole() == ENetRole::ROLE_Authority)
+			{
+				MeshComponent->SetCollisionResponseToChannels(ECollisionResponse::ECR_Block);
+				MeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+				MeshComponent->SetSimulatePhysics(true);
+				MeshComponent->AddForce(Hit.ImpactNormal * 5.f, NAME_None, true);
+				MeshComponent->SetEnableGravity(true);
+			}
+			bCollisionWithVehicleRegistered = true;
+			//SetLifeSpan(5.f);
+		}
+	}
+}
+
+
+void AUDSplineFollowVehicle::OnRep_ServerStateCollisionMove()
+{
+	ClientTimeBetweenLastUpdates = ClientTimeSinceUpdate;
+	ClientTimeSinceUpdate = 0.f;
+}
+
 void AUDSplineFollowVehicle::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -158,5 +217,6 @@ void AUDSplineFollowVehicle::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 	//DOREPLIFETIME(AUDSplineFollowVehicle, Speed);
 	DOREPLIFETIME(AUDSplineFollowVehicle, SpawnData);
 	DOREPLIFETIME(AUDSplineFollowVehicle, bCanMove);
+	DOREPLIFETIME(AUDSplineFollowVehicle, ServerStateCollisionMove);
 }
 
